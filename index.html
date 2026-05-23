@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpeakFlow - AI 语音输入工具</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 1a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z" fill="currentColor"/>
+                    <path d="M19 10v1a7 7 0 0 1-6 6.93V21h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-3.07A7 7 0 0 1 5 11v-1a1 1 0 1 1 2 0v1a5 5 0 0 0 10 0v-1a1 1 0 1 1 2 0Z" fill="currentColor"/>
+                </svg>
+                <h1>SpeakFlow</h1>
+            </div>
+            <p class="subtitle">AI 语音输入工具 — 将语音实时转换为文字</p>
+        </header>
+
+        <main class="main">
+            <div class="status-bar">
+                <div class="status-indicator" id="statusIndicator">
+                    <span class="status-dot"></span>
+                    <span class="status-text" id="statusText">就绪</span>
+                </div>
+                <span class="lang-badge" id="langBadge">中文（中国）</span>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-start" id="startBtn" title="开始录音">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="6" fill="currentColor"/>
+                    </svg>
+                    <span>开始录音</span>
+                </button>
+
+                <button class="btn btn-stop" id="stopBtn" disabled title="停止录音">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>
+                    </svg>
+                    <span>停止录音</span>
+                </button>
+            </div>
+
+            <div class="result-section">
+                <div class="result-header">
+                    <h2>识别结果</h2>
+                    <button class="btn btn-copy" id="copyBtn" title="复制文本" disabled>
+                        <svg class="btn-icon-sm" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="8" y="2" width="12" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                            <path d="M4 7H6V20H16V22H6C4.9 22 4 21.1 4 20V7Z" fill="currentColor"/>
+                        </svg>
+                        <span>复制文本</span>
+                    </button>
+                </div>
+
+                <div class="result-box" id="resultBox">
+                    <p class="placeholder-text" id="placeholderText">点击"开始录音"按钮，开始语音输入...</p>
+                    <p class="interim-text" id="interimText"></p>
+                    <p class="final-text" id="finalText"></p>
+                </div>
+
+                <div class="result-footer">
+                    <span class="char-count" id="charCount">0 字</span>
+                </div>
+
+                <div class="toast" id="toast">已复制到剪贴板</div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>基于 Web Speech API 构建 | 需使用 Chrome 或 Edge 浏览器</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
