@@ -438,6 +438,34 @@ kbd {
     box-shadow: 0 1px 0 rgba(0,0,0,0.08);
 }
 
+.restore-banner {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    background: #FFFBEB;
+    border: 1px solid #FCD34D;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    animation: bannerSlideDown 0.3s ease;
+}
+
+.restore-banner.visible {
+    display: flex;
+}
+
+.restore-banner-text {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+    color: #92400E;
+}
+
+@keyframes bannerSlideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .editor-section {
     position: relative;
     margin-bottom: 22px;

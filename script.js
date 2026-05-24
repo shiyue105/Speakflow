@@ -26,7 +26,10 @@
         sessionCount: null,
         accuracyHint: null,
         logList: null,
-        clearLogBtn: null
+        clearLogBtn: null,
+        restoreBanner: null,
+        restoreBtn: null,
+        discardSavedBtn: null
     };
 
     var recognition = null;
@@ -34,6 +37,8 @@
     var sessionCount = 0;
     var lastStartAt = 0;
     var toastTimer = null;
+    var saveTimer = null;
+    var STORAGE_KEY = 'speakflow_editor_content';
 
     function bindElements() {
         var ids = [
@@ -42,7 +47,7 @@
             'startBtn', 'stopBtn', 'clearBtn', 'copyBtn', 'downloadBtn',
             'editor', 'interimBar', 'interimText', 'toast',
             'wordCount', 'sentenceCount', 'sessionCount', 'accuracyHint',
-            'logList', 'clearLogBtn'
+            'logList', 'clearLogBtn', 'restoreBanner', 'restoreBtn', 'discardSavedBtn'
         ];
         for (var i = 0; i < ids.length; i++) {
             els[ids[i]] = document.getElementById(ids[i]);
@@ -66,6 +71,7 @@
         setSupportedState();
         createRecognizer();
         registerEvents();
+        checkSavedContent();
         updateMetrics();
         updateActionButtons();
     }
@@ -327,6 +333,51 @@
         updateActionButtons();
     }
 
+    function saveToStorage() {
+        var text = els.editor.value;
+        try {
+            if (text.trim()) {
+                localStorage.setItem(STORAGE_KEY, text);
+            }
+        } catch (e) {
+            addLog('自动保存失败：存储空间不足');
+        }
+    }
+
+    function loadFromStorage() {
+        try {
+            return localStorage.getItem(STORAGE_KEY) || '';
+        } catch (e) {
+            return '';
+        }
+    }
+
+    function clearSavedContent() {
+        try {
+            localStorage.removeItem(STORAGE_KEY);
+        } catch (e) { /* ignore */ }
+        els.restoreBanner.classList.remove('visible');
+    }
+
+    function checkSavedContent() {
+        var saved = loadFromStorage();
+        if (saved && !els.editor.value.trim()) {
+            els.restoreBanner.classList.add('visible');
+        }
+    }
+
+    function restoreSavedContent() {
+        var saved = loadFromStorage();
+        if (saved) {
+            els.editor.value = saved;
+            els.editor.scrollTop = els.editor.scrollHeight;
+            updateMetrics();
+            updateActionButtons();
+            addLog('已恢复上次编辑内容');
+            showToast('内容已恢复');
+        }
+    }
+
     function clearText() {
         els.editor.value = '';
         sessionCount = 0;
@@ -475,6 +526,12 @@
     }
 
     function registerEvents() {
+        var originalClearText = clearText;
+        clearText = function () {
+            originalClearText();
+            clearSavedContent();
+        };
+
         els.startBtn.addEventListener('click', startRecording);
         els.stopBtn.addEventListener('click', stopRecording);
         els.clearBtn.addEventListener('click', clearText);
@@ -485,6 +542,8 @@
         els.editor.addEventListener('input', function () {
             updateMetrics();
             updateActionButtons();
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveToStorage, 500);
         });
 
         els.languageSelect.addEventListener('change', function () {
@@ -508,6 +567,15 @@
         });
 
         els.stopBtn.disabled = true;
+
+        els.restoreBtn.addEventListener('click', function () {
+            restoreSavedContent();
+            clearSavedContent();
+        });
+
+        els.discardSavedBtn.addEventListener('click', function () {
+            clearSavedContent();
+        });
     }
 
     if (document.readyState === 'loading') {
