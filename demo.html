@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpeakFlow Demo</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--primary:#4F46E5;--primary-light:#EEF2FF;--danger:#EF4444;--danger-light:#FEF2F2;
+--success:#10B981;--success-light:#ECFDF5;--bg:#F8FAFC;--surface:#fff;
+--border:#E2E8F0;--text:#1E293B;--text-secondary:#64748B;--text-muted:#94A3B8;
+--shadow:0 4px 6px rgba(0,0,0,.05);--shadow-md:0 10px 25px rgba(0,0,0,.06);
+--radius-sm:10px;--radius:14px;--radius-lg:20px;
+}
+body{
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC","Microsoft YaHei",sans-serif;
+background:linear-gradient(135deg,#EEF4FF 0%,#F8FAFC 40%,#FDF2F8 100%);
+min-height:100vh;color:var(--text);overflow-x:hidden;
+}
+.demo-shell{width:min(900px,calc(100% - 32px));margin:0 auto;padding:24px 0 40px}
+
+/* Progress bar */
+.progress-wrap{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.progress-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--primary);border-radius:3px;transition:width .4s ease;width:0}
+.progress-text{font-size:12px;font-weight:700;color:var(--text-muted);min-width:48px;text-align:right}
+
+/* Control bar */
+.control-bar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.control-bar .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:none;
+border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-play{background:var(--primary);color:#fff}
+.btn-play:hover{background:#4338CA}
+.btn-outline{background:var(--bg);color:var(--text-secondary);border:1px solid var(--border)}
+.btn-outline:hover{background:var(--primary-light);color:var(--primary)}
+.speed-label{font-size:12px;color:var(--text-muted);margin-right:4px}
+.speed-btn{padding:4px 10px;font-size:11px;border:1px solid var(--border);border-radius:6px;
+background:var(--surface);color:var(--text-secondary);cursor:pointer;font-family:inherit}
+.speed-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.step-indicator{font-size:13px;color:var(--text-muted);margin-left:auto}
+
+/* Caption banner */
+.caption{background:var(--text);color:#fff;padding:14px 20px;border-radius:var(--radius-sm);
+margin-bottom:16px;font-size:15px;font-weight:600;line-height:1.5;text-align:center;
+animation:fadeInUp .4s ease;box-shadow:var(--shadow-md);position:relative}
+.caption .emoji{font-size:18px;margin-right:6px}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Product UI mockup */
+.product-ui{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}
+
+/* Hero area */
+.hero-row{display:flex;align-items:stretch;gap:16px;padding:20px 24px;border-bottom:1px solid var(--border-light)}
+.hero-text{flex:1}
+.eyebrow{color:var(--primary);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+.hero-title{font-size:24px;font-weight:800;letter-spacing:-.01em;margin-bottom:4px}
+.hero-sub{font-size:13px;color:var(--text-secondary)}
+.status-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+padding:16px 20px;text-align:center;min-width:140px;display:flex;flex-direction:column;gap:4px;justify-content:center}
+.badge-dot{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;
+font-size:11px;font-weight:700;background:var(--success-light);color:var(--success);margin:0 auto 4px}
+.status-text{font-size:18px;font-weight:700}
+.status-sub{font-size:11px;color:var(--text-muted)}
+
+/* Editor */
+.editor-area{padding:16px 24px}
+.editor-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.editor-bar h3{font-size:14px;font-weight:700}
+.editor-actions{display:flex;gap:8px}
+.editor-actions button{padding:5px 12px;border:1px solid var(--border);border-radius:6px;
+background:var(--bg);font-size:12px;cursor:pointer;font-family:inherit;color:var(--text-secondary)}
+.editor-actions button.active-btn{background:var(--success-light);color:var(--success);border-color:#A7F3D0}
+.fake-editor{width:100%;min-height:140px;padding:14px;border:1px solid var(--border);
+border-radius:var(--radius);font-size:15px;line-height:1.8;color:var(--text);background:var(--surface);
+white-space:pre-wrap;font-family:inherit;position:relative;overflow:hidden}
+.fake-editor .text-content{position:relative;z-index:1}
+.fake-editor .cursor{display:inline-block;width:2px;height:18px;background:var(--primary);
+vertical-align:text-bottom;animation:blink .8s step-end infinite;margin-left:1px}
+.fake-editor .highlight{background:#FEF08A;border-radius:2px;padding:0 2px;animation:highlightPulse 1s ease}
+@keyframes blink{50%{opacity:0}}
+@keyframes highlightPulse{0%,100%{background:#FEF08A}50%{background:#FDE68A}}
+
+.interim-row{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 14px;
+background:var(--primary-light);border:1px solid #C7D2FE;border-radius:var(--radius-sm)}
+.pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--primary)}
+.pulse-dot.active{background:var(--danger);animation:dotPulse 1.2s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.5)}}
+.interim-row span{font-size:13px;color:var(--text-muted)}
+
+/* Metrics */
+.metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 24px 16px}
+.metric-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+padding:14px;text-align:center}
+.metric-val{font-size:22px;font-weight:800}.metric-lbl{font-size:11px;color:var(--text-muted)}
+
+/* Step list */
+.step-list{display:flex;gap:10px;flex-wrap:wrap;padding:0 24px 16px}
+.step-chip{padding:6px 14px;border-radius:99px;font-size:12px;font-weight:600;
+background:var(--bg);color:var(--text-muted);border:1px solid var(--border);transition:all .3s}
+.step-chip.done{background:var(--success-light);color:var(--success);border-color:#A7F3D0}
+.step-chip.current{background:var(--primary-light);color:var(--primary);border-color:#C7D2FE}
+
+/* Footer */
+.demo-footer{text-align:center;padding:12px;font-size:12px;color:var(--text-muted)}
+.demo-footer a{color:var(--primary);text-decoration:none}
+
+/* Recording pulse ring on status box */
+.recording-ring{border-color:var(--danger)!important;
+box-shadow:0 0 0 3px rgba(239,68,68,.15),0 0 20px rgba(239,68,68,.1)!important}
+.recording-ring .badge-dot{background:var(--danger-light)!important;color:var(--danger)!important}
+.recording-ring .status-text{color:var(--danger)!important;animation:statusPulse 1.5s ease-in-out infinite}
+@keyframes statusPulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+@media(max-width:600px){
+.hero-row{flex-direction:column;text-align:center}.hero-title{font-size:20px}
+.metrics-row{grid-template-columns:repeat(2,1fr)}.control-bar{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="demo-shell">
+
+<div class="control-bar">
+  <button class="btn btn-play" id="playBtn" onclick="togglePlay()">
+    <span id="playIcon">▶</span> <span id="playLabel">播放</span>
+  </button>
+  <button class="btn btn-outline" onclick="prevStep()">◀ 上一步</button>
+  <button class="btn btn-outline" onclick="nextStep()">下一步 ▶</button>
+  <span class="speed-label">速度：</span>
+  <button class="speed-btn" onclick="setSpeed(0)" id="sp0">1x</button>
+  <button class="speed-btn active" onclick="setSpeed(1)" id="sp1">2x</button>
+  <button class="speed-btn" onclick="setSpeed(2)" id="sp2">4x</button>
+  <span class="step-indicator" id="stepIndicator">步骤 1 / 10</span>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <span class="progress-text" id="progressText">0%</span>
+</div>
+
+<div class="caption" id="caption">
+  <span class="emoji">🎤</span> SpeakFlow — AI 语音输入工具 · 产品功能演示
+</div>
+
+<div class="product-ui">
+  <div class="hero-row">
+    <div class="hero-text">
+      <div class="eyebrow">SpeakFlow · Voice Input Method</div>
+      <div class="hero-title">用语音快速输入、编辑和导出文本</div>
+      <div class="hero-sub">基于浏览器原生 Web Speech API，零依赖、低延迟、高准确度</div>
+    </div>
+    <div class="status-box" id="statusBox">
+      <div class="badge-dot">● 可用</div>
+      <div class="status-text" id="statusText">未开始</div>
+      <div class="status-sub">响应延迟：-- ms</div>
+      <div class="status-sub">预估成本：¥0.00</div>
+    </div>
+  </div>
+
+  <div class="editor-area">
+    <div class="editor-bar">
+      <h3>文本输入区</h3>
+      <div class="editor-actions">
+        <button id="copyBtnMock">📋 复制</button>
+        <button id="mdBtnMock">📥 下载 TXT</button>
+      </div>
+    </div>
+    <div class="fake-editor" id="fakeEditor">
+      <span class="text-content" id="editorContent"></span><span class="cursor" id="cursor"></span>
+    </div>
+    <div class="interim-row">
+      <div class="pulse-dot" id="pulseDot"></div>
+      <span id="interimContent">等待语音输入…</span>
+    </div>
+  </div>
+
+  <div class="metrics-row">
+    <div class="metric-card"><div class="metric-val" id="mChars">0</div><div class="metric-lbl">字符数</div></div>
+    <div class="metric-card"><div class="metric-val" id="mSentences">0</div><div class="metric-lbl">句子数</div></div>
+    <div class="metric-card"><div class="metric-val" id="mSessions">0</div><div class="metric-lbl">识别片段</div></div>
+    <div class="metric-card"><div class="metric-val" id="mStatus">就绪</div><div class="metric-lbl">识别状态</div></div>
+  </div>
+
+  <div class="step-list" id="stepChips"></div>
+</div>
+
+<div class="demo-footer">
+  按 <strong>空格键</strong> 播放/暂停 · 按 <strong>← →</strong> 切换步骤 · 
+  <a href="index.html" target="_blank">打开完整产品 →</a>
+</div>
+
+</div>
+
+<script>
+var steps = [
+  {
+    caption:'🎤 第1步：浏览器兼容性检测 — 打开页面，自动识别是否支持语音功能',
+    action:function(){resetAll();updateStatusBox(true,'未开始','-- ms')},
+    editorText:'',interim:'等待语音输入…',metrics:[0,0,0,'就绪'],pulse:false
+  },
+  {
+    caption:'🎙️ 第2步：点击「开始语音输入」— 授权麦克风，状态变为「正在聆听…」',
+    action:function(){updateStatusBox(true,'正在聆听…','142 ms','recording')},
+    editorText:'',interim:'正在聆听中…',metrics:[0,0,0,'识别中'],pulse:true
+  },
+  {
+    caption:'📝 第3步：实时语音识别 — 说出内容，结果实时显示在编辑区',
+    action:function(){updateStatusBox(true,'正在聆听…','218 ms','recording')},
+    editorText:'今天我们讨论语音输入法产品的核心功能',
+    interim:'今天我们讨论语音输入法产品的核心功能',
+    metrics:[16,0,1,'识别中'],pulse:true
+  },
+  {
+    caption:'✨ 第4步：自动标点 — 口述「句号」「逗号」等自动转换为标点符号',
+    action:function(){updateStatusBox(true,'正在聆听…','196 ms','recording')},
+    editorText:'今天我们讨论语音输入法产品的核心功能。第一点，提高文本输入效率；第二点，降低使用成本。',
+    interim:'第一点，提高文本输入效率；第二点...',
+    metrics:[38,2,3,'识别中'],pulse:true
+  },
+  {
+    caption:'⌨️ 第5步：语音命令 — 说「换行」插入换行，说「删除上一句」删除文本',
+    action:function(){updateStatusBox(true,'正在聆听…','251 ms','recording')},
+    editorText:'今天我们讨论语音输入法产品的核心功能。\n第一点，提高文本输入效率；第二点，降低使用成本。',
+    interim:'第二点，降低使用成本',
+    metrics:[38,2,5,'识别中'],pulse:true
+  },
+  {
+    caption:'🌐 第6步：多语言支持 — 切换 English/日本語/한국어/粤语，识别不同语言',
+    action:function(){updateStatusBox(true,'正在聆听…','173 ms','recording')},
+    editorText:'今天我们讨论语音输入法产品的核心功能。\n第一点，提高文本输入效率；第二点，降低使用成本。\nThis is SpeakFlow voice input demo.',
+    interim:'This is SpeakFlow voice input demo.',
+    metrics:[55,3,6,'识别中'],pulse:true
+  },
+  {
+    caption:'📋 第7步：复制全文 — 点击复制按钮或说「复制全文」，一键复制到剪贴板',
+    action:function(){updateStatusBox(false,'已停止','-- ms');flashButton('copyBtnMock','已复制 ✓')},
+    editorText:'今天我们讨论语音输入法产品的核心功能。\n第一点，提高文本输入效率；第二点，降低使用成本。\nThis is SpeakFlow voice input demo.',
+    interim:'等待语音输入…',metrics:[55,3,6,'就绪'],pulse:false
+  },
+  {
+    caption:'📥 第8步：下载导出 — 支持 TXT 和 Markdown 两种格式导出',
+    action:function(){flashButton('mdBtnMock','已下载 ✓')},
+    editorText:'今天我们讨论语音输入法产品的核心功能。\n第一点，提高文本输入效率；第二点，降低使用成本。\nThis is SpeakFlow voice input demo.',
+    interim:'等待语音输入…',metrics:[55,3,6,'就绪'],pulse:false
+  },
+  {
+    caption:'📊 第9步：实时统计 — 字符数、句子数、识别片段、响应延迟一目了然',
+    action:function(){},
+    editorText:'今天我们讨论语音输入法产品的核心功能。\n第一点，提高文本输入效率；第二点，降低使用成本。\nThis is SpeakFlow voice input demo.',
+    interim:'等待语音输入…',metrics:[55,3,6,'就绪'],pulse:false
+  },
+  {
+    caption:'🚀 第10步：零依赖架构 — 纯 HTML/CSS/JS，零成本，浏览器即开即用',
+    action:function(){},
+    editorText:'今天我们讨论语音输入法产品的核心功能。\n第一点，提高文本输入效率；第二点，降低使用成本。\nThis is SpeakFlow voice input demo.',
+    interim:'等待语音输入…',metrics:[55,3,6,'就绪'],pulse:false
+  }
+];
+
+var currentStep = 0;
+var playing = false;
+var speed = 1;
+var timer = null;
+var speedDelays = [4000,2000,800];
+
+function init(){
+  buildChips();renderStep(0);
+  document.addEventListener('keydown',function(e){
+    if(e.key===' '){e.preventDefault();togglePlay()}
+    if(e.key==='ArrowRight'){e.preventDefault();nextStep()}
+    if(e.key==='ArrowLeft'){e.preventDefault();prevStep()}
+  });
+}
+function buildChips(){
+  var chips=document.getElementById('stepChips');
+  for(var i=0;i<steps.length;i++){
+    var chip=document.createElement('span');
+    chip.className='step-chip';chip.id='chip'+i;chip.textContent=(i+1);
+    chip.onclick=(function(idx){return function(){goToStep(idx)}})(i);
+    chips.appendChild(chip);
+  }
+}
+function renderStep(idx){
+  currentStep=idx;
+  var s=steps[idx];
+  document.getElementById('caption').innerHTML='<span class="emoji">'+
+    s.caption.split(' ')[0].replace(/[🎤🎙️📝✨⌨️🌐📋📥📊🚀]/,'')+'</span>'+s.caption.replace(/^[^\s]+\s/,'');
+  document.getElementById('caption').style.animation='none';
+  document.getElementById('caption').offsetHeight;
+  document.getElementById('caption').style.animation='fadeInUp .4s ease';
+
+  document.getElementById('editorContent').innerHTML=escapeHtml(s.editorText);
+  document.getElementById('interimContent').textContent=s.interim;
+  document.getElementById('mChars').textContent=s.metrics[0];
+  document.getElementById('mSentences').textContent=s.metrics[1];
+  document.getElementById('mSessions').textContent=s.metrics[2];
+  document.getElementById('mStatus').textContent=s.metrics[3];
+
+  var dot=document.getElementById('pulseDot');
+  if(s.pulse){dot.classList.add('active')}else{dot.classList.remove('active')}
+
+  if(s.action)s.action();
+
+  document.getElementById('stepIndicator').textContent='步骤 '+(idx+1)+' / '+steps.length;
+  document.getElementById('progressFill').style.width=(((idx+1)/steps.length)*100)+'%';
+  document.getElementById('progressText').textContent=Math.round(((idx+1)/steps.length)*100)+'%';
+
+  updateChips();
+}
+function escapeHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}
+function updateStatusBox(supported,statusText,latency,recording){
+  var box=document.getElementById('statusBox');
+  var badge=box.querySelector('.badge-dot');
+  var st=document.getElementById('statusText');
+  var subs=box.querySelectorAll('.status-sub');
+  if(supported){badge.textContent='● 可用';badge.style.background='var(--success-light)';badge.style.color='var(--success)'}
+  else{badge.textContent='● 不可用';badge.style.background='var(--danger-light)';badge.style.color='var(--danger)'}
+  st.textContent=statusText;
+  subs[0].textContent='响应延迟：'+latency;
+  if(recording==='recording'){box.classList.add('recording-ring')}else{box.classList.remove('recording-ring')}
+}
+function flashButton(id,text){
+  var btn=document.getElementById(id);var orig=btn.textContent;
+  btn.textContent=text;btn.classList.add('active-btn');
+  setTimeout(function(){btn.textContent=orig;btn.classList.remove('active-btn')},1500);
+}
+function resetAll(){
+  document.getElementById('statusBox').classList.remove('recording-ring');
+  document.getElementById('copyBtnMock').classList.remove('active-btn');
+  document.getElementById('copyBtnMock').textContent='📋 复制';
+  document.getElementById('mdBtnMock').classList.remove('active-btn');
+  document.getElementById('mdBtnMock').textContent='📥 下载 TXT';
+  document.getElementById('editorContent').innerHTML='';
+  document.getElementById('pulseDot').classList.remove('active');
+}
+function updateChips(){
+  for(var i=0;i<steps.length;i++){
+    var c=document.getElementById('chip'+i);
+    c.className='step-chip';
+    if(i<currentStep)c.classList.add('done');
+    if(i===currentStep)c.classList.add('current');
+  }
+}
+function nextStep(){
+  if(currentStep<steps.length-1){renderStep(currentStep+1)}else{stopPlay()}
+}
+function prevStep(){
+  if(currentStep>0){renderStep(currentStep-1)}
+}
+function goToStep(idx){stopPlay();renderStep(idx)}
+function togglePlay(){
+  if(playing){stopPlay()}else{startPlay()}
+}
+function startPlay(){
+  playing=true;
+  document.getElementById('playIcon').textContent='⏸';
+  document.getElementById('playLabel').textContent='暂停';
+  autoAdvance();
+}
+function stopPlay(){
+  playing=false;
+  document.getElementById('playIcon').textContent='▶';
+  document.getElementById('playLabel').textContent='播放';
+  if(timer){clearTimeout(timer);timer=null}
+}
+function autoAdvance(){
+  if(!playing)return;
+  if(currentStep>=steps.length-1){stopPlay();return}
+  renderStep(currentStep+1);
+  timer=setTimeout(autoAdvance,speedDelays[speed]);
+}
+function setSpeed(s){
+  speed=s;
+  document.getElementById('sp0').classList.toggle('active',s===0);
+  document.getElementById('sp1').classList.toggle('active',s===1);
+  document.getElementById('sp2').classList.toggle('active',s===2);
+  if(playing){if(timer)clearTimeout(timer);autoAdvance()}
+}
+
+init();
+setTimeout(function(){startPlay()},800);
+</script>
+</body>
+</html>

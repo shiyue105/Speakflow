@@ -135,6 +135,7 @@ addLog() → 写入日志列表
 SpeakFlow/
 ├── .gitignore                  Git 忽略配置
 ├── index.html                   主页面（187 行）
+├── demo.html                    交互式功能演示页
 ├── style.css                    样式系统（786 行，CSS 变量 + 响应式）
 ├── script.js                    核心引擎（518 行，IIFE 模块化）
 ├── README.md                    项目文档（本文件）
@@ -197,9 +198,17 @@ python -m http.server 8080
 # 访问 http://localhost:8080
 ```
 
-## Demo 视频
+## Demo
 
-> 视频链接：待补充
+在线交互式功能演示（自动播放，含键盘控制）：
+
+👉 **[打开 Demo 演示页](demo.html)**
+
+Demo 页支持：
+- 自动播放 10 步完整功能演示
+- 键盘控制：`空格` 播放/暂停、`← →` 切换步骤
+- 三档播放速度：1x / 2x / 4x
+- 模拟真实语音输入与状态切换效果
 
 ## 开源许可
 
