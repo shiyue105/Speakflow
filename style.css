@@ -674,6 +674,41 @@ textarea#editor.recording {
     color: var(--text-muted);
 }
 
+.footer-links {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+}
+
+.footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color var(--transition);
+    padding: 4px 10px;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.footer-link:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+.footer-link-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
 @media (max-width: 800px) {
     .hero,
     .control-grid {
