@@ -1,218 +1,352 @@
 (function () {
     'use strict';
 
-    var startBtn = document.getElementById('startBtn');
-    var stopBtn = document.getElementById('stopBtn');
-    var copyBtn = document.getElementById('copyBtn');
-    var resultBox = document.getElementById('resultBox');
-    var finalText = document.getElementById('finalText');
-    var interimText = document.getElementById('interimText');
-    var placeholderText = document.getElementById('placeholderText');
-    var statusIndicator = document.getElementById('statusIndicator');
-    var statusText = document.getElementById('statusText');
-    var charCount = document.getElementById('charCount');
-    var langSelect = document.getElementById('langSelect');
-    var toast = document.getElementById('toast');
+    var SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    var els = {
+        supportBadge: null,
+        listeningStatus: null,
+        latencyText: null,
+        costText: null,
+        languageSelect: null,
+        modeSelect: null,
+        autoPunctuation: null,
+        voiceCommands: null,
+        startBtn: null,
+        stopBtn: null,
+        clearBtn: null,
+        copyBtn: null,
+        downloadBtn: null,
+        editor: null,
+        interimBar: null,
+        interimText: null,
+        toast: null,
+        wordCount: null,
+        sentenceCount: null,
+        sessionCount: null,
+        accuracyHint: null,
+        logList: null,
+        clearLogBtn: null
+    };
 
     var recognition = null;
-    var isRecording = false;
-    var accumulatedText = '';
-    var currentLang = 'zh-CN';
+    var isListening = false;
+    var sessionCount = 0;
+    var lastStartAt = 0;
     var toastTimer = null;
 
-    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    function isSpeechSupported() {
-        return !!SpeechRecognition;
+    function bindElements() {
+        var ids = [
+            'supportBadge', 'listeningStatus', 'latencyText', 'costText',
+            'languageSelect', 'modeSelect', 'autoPunctuation', 'voiceCommands',
+            'startBtn', 'stopBtn', 'clearBtn', 'copyBtn', 'downloadBtn',
+            'editor', 'interimBar', 'interimText', 'toast',
+            'wordCount', 'sentenceCount', 'sessionCount', 'accuracyHint',
+            'logList', 'clearLogBtn'
+        ];
+        for (var i = 0; i < ids.length; i++) {
+            els[ids[i]] = document.getElementById(ids[i]);
+        }
     }
 
-    function initRecognition() {
-        if (!isSpeechSupported()) {
+    function isSupported() {
+        return !!SpeechRecognitionAPI;
+    }
+
+    function init() {
+        bindElements();
+
+        els.costText.textContent = '预估成本：¥0.00';
+
+        if (!isSupported()) {
             setUnsupportedState();
             return;
         }
 
-        resetRecognition();
+        setSupportedState();
+        createRecognizer();
+        registerEvents();
+        updateMetrics();
+        updateActionButtons();
+    }
+
+    function setSupportedState() {
+        els.supportBadge.textContent = '可用';
+        els.supportBadge.className = 'badge badge-ready';
+        els.accuracyHint.textContent = '就绪';
+        addLog('浏览器语音识别已就绪');
     }
 
     function setUnsupportedState() {
-        startBtn.disabled = true;
-        stopBtn.disabled = true;
-        copyBtn.disabled = true;
-        langSelect.disabled = true;
-        placeholderText.textContent = '您的浏览器不支持语音识别功能，请使用 Chrome 或 Edge 浏览器。';
-        placeholderText.classList.remove('hidden');
-        statusText.textContent = '不支持';
-        statusIndicator.classList.add('recording');
+        els.supportBadge.textContent = '不可用';
+        els.supportBadge.className = 'badge badge-error';
+        els.listeningStatus.textContent = '不支持';
+        els.accuracyHint.textContent = '不支持';
+        els.startBtn.disabled = true;
+        els.stopBtn.disabled = true;
+        els.languageSelect.disabled = true;
+        els.modeSelect.disabled = true;
+        els.autoPunctuation.disabled = true;
+        els.voiceCommands.disabled = true;
+        addLog('当前浏览器不支持 Web Speech API，请使用 Chrome 或 Edge');
     }
 
-    function resetRecognition() {
+    function createRecognizer() {
         if (recognition) {
-            try {
-                recognition.abort();
-            } catch (e) {}
+            try { recognition.abort(); } catch (e) { /* ignore */ }
         }
-        recognition = new SpeechRecognition();
+
+        recognition = new SpeechRecognitionAPI();
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = currentLang;
-        recognition.onstart = handleRecognitionStart;
-        recognition.onresult = handleRecognitionResult;
-        recognition.onerror = handleRecognitionError;
-        recognition.onend = handleRecognitionEnd;
+        recognition.maxAlternatives = 1;
+        recognition.lang = els.languageSelect.value;
+
+        recognition.onstart = onRecognitionStart;
+        recognition.onresult = onRecognitionResult;
+        recognition.onerror = onRecognitionError;
+        recognition.onend = onRecognitionEnd;
     }
 
-    function handleRecognitionStart() {
-        isRecording = true;
+    function onRecognitionStart() {
+        isListening = true;
+        lastStartAt = performance.now();
+        els.listeningStatus.textContent = '正在聆听…';
+        els.listeningStatus.classList.add('listening');
+        els.accuracyHint.textContent = '识别中';
         updateUIState('recording');
+        addLog('开始语音输入');
     }
 
-    function handleRecognitionResult(event) {
-        var newInterim = '';
+    function onRecognitionResult(event) {
+        var interim = '';
 
         for (var i = event.resultIndex; i < event.results.length; i++) {
-            var result = event.results[i];
-            var transcript = result[0].transcript;
+            var transcript = event.results[i][0].transcript.trim();
 
-            if (result.isFinal) {
-                accumulatedText += transcript;
+            if (event.results[i].isFinal) {
+                var processed = processText(transcript);
+                if (handleVoiceCommand(processed)) {
+                    continue;
+                }
+                appendText(processed);
+                sessionCount += 1;
+                els.sessionCount.textContent = sessionCount;
+
+                var latency = Math.round(performance.now() - lastStartAt);
+                els.latencyText.textContent = '响应延迟：' + latency + ' ms';
+
+                addLog('识别片段：' + processed);
             } else {
-                newInterim += transcript;
+                interim += transcript;
             }
         }
 
-        interimText.textContent = newInterim;
-        finalText.textContent = accumulatedText;
+        els.interimText.textContent = interim || '等待语音输入…';
+        els.interimBar.classList.toggle('active', !!interim);
 
-        if (accumulatedText || newInterim) {
-            placeholderText.classList.add('hidden');
-        } else {
-            placeholderText.classList.remove('hidden');
-        }
-
-        updateCharCount();
-        updateCopyButton();
+        updateMetrics();
+        updateActionButtons();
     }
 
-    function handleRecognitionError(event) {
-        console.error('语音识别错误:', event.error, event.message);
+    function onRecognitionError(event) {
+        var errorMap = {
+            'no-speech': '未检测到语音',
+            'audio-capture': '未找到麦克风设备',
+            'not-allowed': '麦克风权限被拒绝',
+            'network': '网络连接错误',
+            'aborted': '识别已中止',
+            'language-not-supported': '不支持当前语言',
+            'service-not-allowed': '服务不可用',
+            'bad-grammar': '语法错误'
+        };
 
-        switch (event.error) {
-            case 'no-speech':
-                statusText.textContent = '未检测到语音';
-                break;
-            case 'audio-capture':
-                statusText.textContent = '未找到麦克风设备';
-                break;
-            case 'not-allowed':
-                statusText.textContent = '麦克风权限被拒绝';
-                break;
-            case 'network':
-                statusText.textContent = '网络错误';
-                break;
-            case 'aborted':
-                statusText.textContent = '识别已中止';
-                break;
-            default:
-                statusText.textContent = '识别错误';
-                break;
+        var message = errorMap[event.error] || ('识别错误：' + event.error);
+        els.listeningStatus.textContent = message;
+        els.accuracyHint.textContent = '错误';
+        addLog('错误 — ' + message);
+
+        if (event.error === 'no-speech' && isListening) {
+            return;
         }
 
-        if (event.error === 'no-speech' && isRecording) {
+        if (event.error === 'aborted') {
+            tryRestartOrStop();
             return;
         }
 
         stopRecording();
     }
 
-    function handleRecognitionEnd() {
-        if (isRecording) {
+    function onRecognitionEnd() {
+        if (isListening) {
             try {
                 recognition.start();
+                addLog('自动恢复识别连接');
             } catch (e) {
                 stopRecording();
+                addLog('恢复连接失败，已停止');
             }
         } else {
             updateUIState('idle');
         }
     }
 
-    function startRecording() {
-        if (!isSpeechSupported() || isRecording) return;
+    function tryRestartOrStop() {
+        if (!isListening) {
+            updateUIState('idle');
+            return;
+        }
+        stopRecording();
+    }
 
-        accumulatedText = '';
-        finalText.textContent = '';
-        interimText.textContent = '';
-        placeholderText.classList.remove('hidden');
+    function processText(rawText) {
+        var text = rawText.replace(/\s+/g, ' ');
+
+        if (els.voiceCommands.checked) {
+            text = text.replace(/换行/g, '\n');
+        }
+
+        if (els.autoPunctuation.checked) {
+            text = applyPunctuation(text);
+        }
+
+        return text;
+    }
+
+    function applyPunctuation(text) {
+        var result = text
+            .replace(/逗号/g, '，')
+            .replace(/句号/g, '。')
+            .replace(/问号/g, '？')
+            .replace(/感叹号/g, '！')
+            .replace(/顿号/g, '、')
+            .replace(/冒号/g, '：')
+            .replace(/分号/g, '；');
+
+        var mode = els.modeSelect.value;
+        if (!/[。！？.!?\n]$/.test(result)) {
+            if (mode === 'chat') {
+                result += '。';
+            } else if (mode === 'academic') {
+                result += '。';
+            } else {
+                result += '。';
+            }
+        }
+
+        return result;
+    }
+
+    function handleVoiceCommand(text) {
+        if (!els.voiceCommands.checked) {
+            return false;
+        }
+
+        var normalized = text.replace(/[，。！？、：；\s]/g, '');
+
+        if (normalized === '清空文本') {
+            clearText();
+            addLog('语音命令：清空文本');
+            return true;
+        }
+
+        if (normalized === '复制全文') {
+            copyText();
+            addLog('语音命令：复制全文');
+            return true;
+        }
+
+        if (normalized === '删除上一句') {
+            deleteLastSentence();
+            addLog('语音命令：删除上一句');
+            return true;
+        }
+
+        return false;
+    }
+
+    function appendText(text) {
+        var editor = els.editor;
+        var current = editor.value.trimEnd();
+
+        if (current && !current.endsWith('\n') && !current.endsWith('。') && !current.endsWith('！') && !current.endsWith('？')) {
+            editor.value = current + text;
+        } else {
+            editor.value = current + (current ? '' : '') + text;
+        }
+
+        editor.scrollTop = editor.scrollHeight;
+        updateMetrics();
+    }
+
+    function deleteLastSentence() {
+        var editor = els.editor;
+        editor.value = editor.value.replace(/[^。！？.!?\n]+[。！？.!?]?\s*$/, '').trimEnd();
+        updateMetrics();
+    }
+
+    function startRecording() {
+        if (!isSupported() || isListening) {
+            return;
+        }
 
         try {
             recognition.start();
         } catch (e) {
-            console.error('启动语音识别失败:', e);
-            statusText.textContent = '启动失败，请重试';
-            return;
+            addLog('启动失败：' + e.message + '，尝试重新创建识别器');
+            createRecognizer();
+            try {
+                recognition.start();
+            } catch (e2) {
+                els.listeningStatus.textContent = '启动失败，请刷新页面';
+                els.accuracyHint.textContent = '启动失败';
+                addLog('二次启动也失败：' + e2.message);
+            }
         }
     }
 
     function stopRecording() {
-        if (!isSpeechSupported() || !isRecording) return;
+        if (!isSupported() || !isListening) {
+            return;
+        }
 
-        isRecording = false;
+        isListening = false;
 
         try {
             recognition.stop();
         } catch (e) {
-            console.error('停止语音识别失败:', e);
+            addLog('停止异常：' + e.message);
         }
-
-        var finalResult = accumulatedText + interimText.textContent;
-        accumulatedText = finalResult;
-        finalText.textContent = accumulatedText;
-        interimText.textContent = '';
 
         updateUIState('idle');
-        updateCharCount();
-        updateCopyButton();
+        els.listeningStatus.textContent = '已停止';
+        els.listeningStatus.classList.remove('listening');
+        els.accuracyHint.textContent = '就绪';
+        els.interimBar.classList.remove('active');
+        updateActionButtons();
+    }
 
-        if (accumulatedText) {
-            placeholderText.classList.add('hidden');
+    function clearText() {
+        els.editor.value = '';
+        sessionCount = 0;
+        els.sessionCount.textContent = '0';
+        els.latencyText.textContent = '响应延迟：-- ms';
+        els.interimText.textContent = '等待语音输入…';
+        els.interimBar.classList.remove('active');
+        updateMetrics();
+        updateActionButtons();
+    }
+
+    function copyText() {
+        var text = els.editor.value;
+        if (!text.trim()) {
+            return;
         }
-    }
-
-    function updateUIState(state) {
-        if (state === 'recording') {
-            startBtn.disabled = true;
-            stopBtn.disabled = false;
-            statusText.textContent = '录音中...';
-            statusIndicator.classList.add('recording');
-            resultBox.classList.add('recording');
-        } else {
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
-            statusText.textContent = '就绪';
-            statusIndicator.classList.remove('recording');
-            resultBox.classList.remove('recording');
-        }
-    }
-
-    function updateCharCount() {
-        var text = accumulatedText + interimText.textContent;
-        var count = text.replace(/\s/g, '').length;
-        charCount.textContent = count + ' 字';
-    }
-
-    function updateCopyButton() {
-        var hasContent = !!(accumulatedText || interimText.textContent);
-        copyBtn.disabled = !hasContent;
-    }
-
-    function copyToClipboard() {
-        var text = accumulatedText + interimText.textContent;
-        if (!text.trim()) return;
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(function () {
-                showCopySuccess();
+                onCopySuccess();
             }).catch(function () {
                 fallbackCopy(text);
             });
@@ -234,32 +368,96 @@
         try {
             var success = document.execCommand('copy');
             if (success) {
-                showCopySuccess();
+                onCopySuccess();
             } else {
-                showCopyFailure();
+                showToast('复制失败，请手动选择文本');
             }
         } catch (e) {
-            showCopyFailure();
+            showToast('复制失败，请手动选择文本');
         }
 
         document.body.removeChild(textarea);
     }
 
-    function showCopySuccess() {
-        copyBtn.classList.add('copied');
-        var originalHtml = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<svg class="btn-icon-sm" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>已复制</span>';
+    function onCopySuccess() {
+        els.copyBtn.classList.add('btn-copied');
+        var originalHtml = els.copyBtn.innerHTML;
+        els.copyBtn.innerHTML = '<svg class="btn-icon-sm" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>已复制';
 
         showToast('已复制到剪贴板');
 
         setTimeout(function () {
-            copyBtn.classList.remove('copied');
-            copyBtn.innerHTML = originalHtml;
+            els.copyBtn.classList.remove('btn-copied');
+            els.copyBtn.innerHTML = originalHtml;
         }, 2000);
     }
 
-    function showCopyFailure() {
-        showToast('复制失败，请手动选择文本复制');
+    function downloadText() {
+        var text = els.editor.value;
+        if (!text.trim()) {
+            return;
+        }
+
+        var dateStr = new Date().toISOString().slice(0, 10);
+        var timeStr = new Date().toTimeString().slice(0, 8).replace(/:/g, '-');
+        var filename = 'speakflow-' + dateStr + '-' + timeStr + '.txt';
+
+        var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.click();
+        URL.revokeObjectURL(url);
+
+        addLog('已导出 TXT 文件：' + filename);
+        showToast('文件已下载');
+    }
+
+    function updateUIState(state) {
+        if (state === 'recording') {
+            els.startBtn.disabled = true;
+            els.stopBtn.disabled = false;
+            els.editor.classList.add('recording');
+            els.interimBar.classList.add('active');
+        } else {
+            els.startBtn.disabled = false;
+            els.stopBtn.disabled = true;
+            els.editor.classList.remove('recording');
+            els.interimBar.classList.remove('active');
+        }
+    }
+
+    function updateMetrics() {
+        var text = els.editor.value;
+        var charCount = text.replace(/\s/g, '').length;
+        var sentences = text.split(/[。！？.!?\n]+/).filter(Boolean).length;
+
+        els.wordCount.textContent = charCount;
+        els.sentenceCount.textContent = sentences;
+    }
+
+    function updateActionButtons() {
+        var hasContent = !!els.editor.value.trim();
+        els.copyBtn.disabled = !hasContent;
+        els.downloadBtn.disabled = !hasContent;
+    }
+
+    function addLog(message) {
+        var li = document.createElement('li');
+        var time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+        li.textContent = time + ' · ' + message;
+        els.logList.insertBefore(li, els.logList.firstChild);
+
+        while (els.logList.children.length > 30) {
+            els.logList.removeChild(els.logList.lastChild);
+        }
+    }
+
+    function clearLogs() {
+        while (els.logList.firstChild) {
+            els.logList.removeChild(els.logList.firstChild);
+        }
     }
 
     function showToast(message) {
@@ -267,32 +465,54 @@
             clearTimeout(toastTimer);
         }
 
-        toast.textContent = message;
-        toast.classList.add('show');
+        els.toast.textContent = message;
+        els.toast.classList.add('show');
 
         toastTimer = setTimeout(function () {
-            toast.classList.remove('show');
+            els.toast.classList.remove('show');
             toastTimer = null;
         }, 2000);
     }
 
-    startBtn.addEventListener('click', startRecording);
-    stopBtn.addEventListener('click', stopRecording);
-    copyBtn.addEventListener('click', copyToClipboard);
+    function registerEvents() {
+        els.startBtn.addEventListener('click', startRecording);
+        els.stopBtn.addEventListener('click', stopRecording);
+        els.clearBtn.addEventListener('click', clearText);
+        els.copyBtn.addEventListener('click', copyText);
+        els.downloadBtn.addEventListener('click', downloadText);
+        els.clearLogBtn.addEventListener('click', clearLogs);
 
-    langSelect.addEventListener('change', function () {
-        if (isRecording) {
-            stopRecording();
-        }
-        currentLang = langSelect.value;
-        resetRecognition();
-    });
+        els.editor.addEventListener('input', function () {
+            updateMetrics();
+            updateActionButtons();
+        });
 
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && isRecording) {
-            stopRecording();
-        }
-    });
+        els.languageSelect.addEventListener('change', function () {
+            var wasListening = isListening;
+            if (wasListening) {
+                stopRecording();
+            }
+            createRecognizer();
+            if (wasListening) {
+                startRecording();
+            }
+            addLog('切换语言：' + els.languageSelect.options[els.languageSelect.selectedIndex].text);
+        });
 
-    initRecognition();
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && isListening) {
+                event.preventDefault();
+                stopRecording();
+                addLog('快捷键 Esc：停止录音');
+            }
+        });
+
+        els.stopBtn.disabled = true;
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 })();

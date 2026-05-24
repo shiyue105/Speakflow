@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpeakFlow 语音输入法</title>
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">SpeakFlow · Voice Input Method</p>
+        <h1>用语音快速输入、编辑和导出文本</h1>
+        <p class="subtitle">面向笔记、作业、会议纪要和聊天场景的浏览器端语音输入法 MVP，兼顾准确度、易用性、响应速度与成本。</p>
+      </div>
+      <div class="status-card" aria-live="polite">
+        <span id="supportBadge" class="badge">检测中</span>
+        <strong id="listeningStatus">未开始</strong>
+        <small id="latencyText">响应延迟：-- ms</small>
+      </div>
+    </section>
+
+    <section class="control-grid">
+      <div class="panel">
+        <h2>输入设置</h2>
+        <label>
+          识别语言
+          <select id="languageSelect">
+            <option value="zh-CN">中文普通话</option>
+            <option value="en-US">English</option>
+          </select>
+        </label>
+        <label>
+          应用场景
+          <select id="modeSelect">
+            <option value="note">课堂/会议笔记</option>
+            <option value="chat">聊天短句</option>
+            <option value="academic">学术写作草稿</option>
+          </select>
+        </label>
+        <div class="toggle-row">
+          <label><input type="checkbox" id="autoPunctuation" checked /> 自动标点</label>
+          <label><input type="checkbox" id="voiceCommands" checked /> 语音命令</label>
+        </div>
+        <div class="button-row">
+          <button id="startBtn" class="primary">开始语音输入</button>
+          <button id="stopBtn">停止</button>
+          <button id="clearBtn" class="danger">清空</button>
+        </div>
+      </div>
+
+      <div class="panel tips">
+        <h2>可用语音命令</h2>
+        <ul>
+          <li>“换行” → 插入换行</li>
+          <li>“删除上一句” → 删除最后一句</li>
+          <li>“复制全文” → 复制到剪贴板</li>
+          <li>“清空文本” → 清空输入区</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="editor-section">
+      <div class="editor-header">
+        <h2>文本输入区</h2>
+        <div class="button-row compact">
+          <button id="copyBtn">复制</button>
+          <button id="downloadBtn">下载 TXT</button>
+        </div>
+      </div>
+      <textarea id="editor" placeholder="点击“开始语音输入”，或直接在这里编辑文本。"></textarea>
+      <div class="interim" id="interimText">实时识别结果会显示在这里。</div>
+    </section>
+
+    <section class="metrics-grid">
+      <article class="metric"><span id="wordCount">0</span><small>字符数</small></article>
+      <article class="metric"><span id="sentenceCount">0</span><small>句子数</small></article>
+      <article class="metric"><span id="sessionCount">0</span><small>识别片段</small></article>
+      <article class="metric"><span id="costText">¥0</span><small>API 成本</small></article>
+    </section>
+
+    <section class="panel log-panel">
+      <h2>识别日志</h2>
+      <ol id="logList"></ol>
+    </section>
+  </main>
+
+  <script src="src/app.js"></script>
+</body>
+</html>
