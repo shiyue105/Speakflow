@@ -17,6 +17,7 @@
         clearBtn: null,
         copyBtn: null,
         downloadBtn: null,
+        downloadMdBtn: null,
         editor: null,
         interimBar: null,
         interimText: null,
@@ -44,7 +45,7 @@
         var ids = [
             'supportBadge', 'listeningStatus', 'latencyText', 'costText',
             'languageSelect', 'modeSelect', 'autoPunctuation', 'voiceCommands',
-            'startBtn', 'stopBtn', 'clearBtn', 'copyBtn', 'downloadBtn',
+            'startBtn', 'stopBtn', 'clearBtn', 'copyBtn', 'downloadBtn', 'downloadMdBtn',
             'editor', 'interimBar', 'interimText', 'toast',
             'wordCount', 'sentenceCount', 'sessionCount', 'accuracyHint',
             'logList', 'clearLogBtn', 'restoreBanner', 'restoreBtn', 'discardSavedBtn'
@@ -465,6 +466,44 @@
         showToast('文件已下载');
     }
 
+    function downloadMarkdown() {
+        var text = els.editor.value;
+        if (!text.trim()) {
+            return;
+        }
+
+        var lines = text.split(/\n+/);
+        var mdLines = [];
+
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (!line) continue;
+
+            if (line.startsWith('#')) {
+                mdLines.push(line);
+            } else if (line.length > 0 && !/[。！？.!?]$/.test(line)) {
+                mdLines.push('### ' + line);
+            } else {
+                mdLines.push(line);
+            }
+        }
+
+        var dateStr = new Date().toISOString().slice(0, 10);
+        var timeStr = new Date().toTimeString().slice(0, 8).replace(/:/g, '-');
+        var filename = 'speakflow-' + dateStr + '-' + timeStr + '.md';
+
+        var blob = new Blob(['\uFEFF' + mdLines.join('\n\n')], { type: 'text/markdown;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = filename;
+        anchor.click();
+        URL.revokeObjectURL(url);
+
+        addLog('已导出 MD 文件：' + filename);
+        showToast('Markdown 已下载');
+    }
+
     function updateUIState(state) {
         if (state === 'recording') {
             els.startBtn.disabled = true;
@@ -492,6 +531,7 @@
         var hasContent = !!els.editor.value.trim();
         els.copyBtn.disabled = !hasContent;
         els.downloadBtn.disabled = !hasContent;
+        els.downloadMdBtn.disabled = !hasContent;
     }
 
     function addLog(message) {
@@ -537,6 +577,7 @@
         els.clearBtn.addEventListener('click', clearText);
         els.copyBtn.addEventListener('click', copyText);
         els.downloadBtn.addEventListener('click', downloadText);
+        els.downloadMdBtn.addEventListener('click', downloadMarkdown);
         els.clearLogBtn.addEventListener('click', clearLogs);
 
         els.editor.addEventListener('input', function () {
