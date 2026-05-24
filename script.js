@@ -11,12 +11,13 @@
     var statusIndicator = document.getElementById('statusIndicator');
     var statusText = document.getElementById('statusText');
     var charCount = document.getElementById('charCount');
-    var langBadge = document.getElementById('langBadge');
+    var langSelect = document.getElementById('langSelect');
     var toast = document.getElementById('toast');
 
     var recognition = null;
     var isRecording = false;
     var accumulatedText = '';
+    var currentLang = 'zh-CN';
     var toastTimer = null;
 
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -31,26 +32,34 @@
             return;
         }
 
-        recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'zh-CN';
-
-        recognition.onstart = handleRecognitionStart;
-        recognition.onresult = handleRecognitionResult;
-        recognition.onerror = handleRecognitionError;
-        recognition.onend = handleRecognitionEnd;
+        resetRecognition();
     }
 
     function setUnsupportedState() {
         startBtn.disabled = true;
         stopBtn.disabled = true;
         copyBtn.disabled = true;
+        langSelect.disabled = true;
         placeholderText.textContent = '您的浏览器不支持语音识别功能，请使用 Chrome 或 Edge 浏览器。';
         placeholderText.classList.remove('hidden');
         statusText.textContent = '不支持';
         statusIndicator.classList.add('recording');
-        langBadge.textContent = '不支持';
+    }
+
+    function resetRecognition() {
+        if (recognition) {
+            try {
+                recognition.abort();
+            } catch (e) {}
+        }
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = currentLang;
+        recognition.onstart = handleRecognitionStart;
+        recognition.onresult = handleRecognitionResult;
+        recognition.onerror = handleRecognitionError;
+        recognition.onend = handleRecognitionEnd;
     }
 
     function handleRecognitionStart() {
@@ -270,6 +279,14 @@
     startBtn.addEventListener('click', startRecording);
     stopBtn.addEventListener('click', stopRecording);
     copyBtn.addEventListener('click', copyToClipboard);
+
+    langSelect.addEventListener('change', function () {
+        if (isRecording) {
+            stopRecording();
+        }
+        currentLang = langSelect.value;
+        resetRecognition();
+    });
 
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape' && isRecording) {
