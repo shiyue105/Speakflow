@@ -212,7 +212,7 @@ Demo 页支持：
 
 访问 http://localhost:8080/demo.html 查看演示视频
 
-Bilibili视频链接 https://member.bilibili.com/platform/upload-manager/archive-process?bvid=BV1apGJ6GEkf
+Bilibili视频链接 [https://member.bilibili.com/platform/upload-manager/archive-process?bvid=BV1apGJ6GEkf](https://www.bilibili.com/video/BV1apGJ6GEkf/?spm_id_from=333.1387.homepage.video_card.click&vd_source=22d457e89b91f98294d2307489d08b44)
 
 
 ## 开源许可
