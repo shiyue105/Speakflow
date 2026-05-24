@@ -1,5 +1,7 @@
 # SpeakFlow — AI 语音输入工具
 
+> **[🌐 在线体验](https://shiyue105.github.io/Speakflow/)** | [📺 交互式 Demo](https://shiyue105.github.io/Speakflow/demo.html) | [📦 GitHub 仓库](https://github.com/shiyue105/Speakflow)
+
 ## 项目简介
 
 SpeakFlow 是一款基于浏览器原生 Web Speech API 构建的语音输入法产品。面向课堂笔记、会议纪要、聊天短句、学术写作草稿等场景，帮助用户通过语音快速完成文本输入与轻量编辑，在准确度、易用性、响应速度和成本之间取得平衡。
