@@ -209,8 +209,8 @@ Demo 页支持：
 - 键盘控制：`空格` 播放/暂停、`← →` 切换步骤
 - 三档播放速度：1x / 2x / 4x
 - 模拟真实语音输入与状态切换效果
-# 访问 http://localhost:8080/demo.html 查看演示视频
-# Bilibili视频链接 https://member.bilibili.com/platform/upload-manager/archive-process?bvid=BV1apGJ6GEkf
+访问 http://localhost:8080/demo.html 查看演示视频
+Bilibili视频链接 https://member.bilibili.com/platform/upload-manager/archive-process?bvid=BV1apGJ6GEkf
 
 
 ## 开源许可
