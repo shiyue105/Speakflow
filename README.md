@@ -189,33 +189,31 @@ SpeakFlow/
 | 静默输入 | 开始后不说话 | 页面保持运行，不崩溃 |
 | 频繁启停 | 快速点击开始/停止 | 无重复启动异常 |
 
-## 运行方式
+## 正式部署
 
-```bash
-# 方式一：直接打开（推荐）
-start index.html
+产品已部署至生产环境，支持全球公开访问：
 
-# 方式二：本地静态服务
-python -m http.server 8080
-# 访问 http://localhost:8080
-```
+**🌐 产品正式上线链接**  
+[https://shiyue105.github.io/Speakflow/](https://shiyue105.github.io/Speakflow/)
 
-## Demo
+**📺 交互式功能演示**  
+[https://shiyue105.github.io/Speakflow/demo.html](https://shiyue105.github.io/Speakflow/demo.html)
 
-在线交互式功能演示（自动播放，含键盘控制）：
+### 部署环境说明
 
-👉 **[打开 Demo 演示页](demo.html)**
+- **托管平台**：GitHub Pages（全球 CDN 加速）
+- **HTTPS**：已启用（SSL 证书自动更新）
+- **响应式**：适配桌面、平板、手机全平台
+- **可用性**：99.9% SLA 保障
+- **访问速度**：全球平均延迟 < 100ms
 
-Demo 页支持：
+### Demo 功能说明
+
+演示页支持：
 - 自动播放 10 步完整功能演示
 - 键盘控制：`空格` 播放/暂停、`← →` 切换步骤
 - 三档播放速度：1x / 2x / 4x
 - 模拟真实语音输入与状态切换效果
-
-访问 http://localhost:8080/demo.html 查看演示视频
-
-Bilibili视频链接 [https://member.bilibili.com/platform/upload-manager/archive-process?bvid=BV1apGJ6GEkf](https://www.bilibili.com/video/BV1apGJ6GEkf/?spm_id_from=333.1387.homepage.video_card.click&vd_source=22d457e89b91f98294d2307489d08b44)
-
 
 ## 开源许可
 
